@@ -1,0 +1,40 @@
+# mm-customer/docker-compose.yml
+
+version: '3.8'
+
+services:
+  mm-customer-db:
+    image: postgres:latest
+    container_name: mm-customer-db
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: marketmaster
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/mm-customer.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"  # Map PostgreSQL to a different external port to avoid conflicts
+    networks:
+      - marketmaster-network
+
+  customer_service:
+    build: .
+    container_name: mm-customer
+    ports:
+      - "5701:5701"
+    depends_on:
+      - mm-customer-db
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    networks:
+      - marketmaster-network
+
+volumes:
+  postgres_data:
+
+networks:
+  marketmaster-network:
+    external: true
