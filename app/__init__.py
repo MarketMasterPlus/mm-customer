@@ -3,6 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_restx import Api
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
@@ -12,6 +13,7 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
     load_dotenv()
 
     # Set configuration for the database

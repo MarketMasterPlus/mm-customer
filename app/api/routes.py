@@ -135,36 +135,26 @@ class CustomerLogin(Resource):
     @api.expect(login_model)
     def post(self):
         data = request.get_json()
-
-        # Check if identifier (CPF or email) and password are provided
         identifier = data.get('identifier')
         password = data.get('password')
 
         if not identifier or not password:
             return {'message': 'Identifier (CPF or Email) and password are required'}, 400
 
-        # Check if the identifier is an email or CPF (basic check using "@" to differentiate)
-        if '@' in identifier:
-            # It's an email, look up by email
-            customer = Customer.query.filter_by(email=identifier).first()
-        else:
-            # It's a CPF, look up by CPF
-            customer = Customer.query.filter_by(cpf=identifier).first()
+        # Check if the identifier is an email or CPF and find the customer
+        customer = Customer.query.filter(
+            (Customer.email == identifier) | (Customer.cpf == identifier)
+        ).first()
 
-        if not customer:
+        if not customer or not customer.check_password(password):  # Correctly use the custom method
             return {'message': 'Invalid identifier or password'}, 401
 
-        # Verify the password
-        if not check_password_hash(customer.password_hash, password):
-            return {'message': 'Invalid identifier or password'}, 401
-
-        # Generate JWT token
         try:
             token = generate_jwt(customer.id)
+            full_name = customer.full_name  # Assuming there's a full_name attribute
+            return {'message': 'Login successful', 'token': token, 'fullName': full_name}, 200
         except PyJWTError as e:
             return {'message': 'Error generating JWT token', 'error': str(e)}, 500
-
-        return {'message': 'Login successful', 'token': token}, 200
 
 # Create a parser for the 'q' query parameter
 customer_query_parser = reqparse.RequestParser()
