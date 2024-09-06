@@ -6,11 +6,11 @@ CREATE DATABASE mm_customer;
 -- Create a table for customers
 CREATE TABLE IF NOT EXISTS customers (
     id SERIAL PRIMARY KEY,
-    full_name VARCHAR(255) NOT NULL,
+    fullname VARCHAR(255) NOT NULL,
     cpf VARCHAR(11) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    address_id VARCHAR(255),  -- Soft reference to an address in the mm-address service (e.g., ViaCEP address ID)
+    addressid VARCHAR(255),  -- Soft reference to an address in the mm-address service (e.g., ViaCEP address ID)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

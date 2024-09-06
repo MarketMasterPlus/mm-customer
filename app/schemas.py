@@ -3,10 +3,11 @@
 from marshmallow import Schema, fields, validate
 
 class CustomerSchema(Schema):
-    full_name = fields.Str(required=True, validate=validate.Length(min=1))
+    fullname = fields.Str(required=True, validate=validate.Length(min=1))
     cpf = fields.Str(required=True, validate=validate.Length(equal=11))  # Accept unformatted CPF
     email = fields.Email(required=True)
     password = fields.Str(required=True, validate=validate.Length(min=8))
+    addressid = fields.Int(required=True)  # Reference to the address service
 
     # Include the address fields directly if not using a separate Address model
     cep = fields.Str(required=True)

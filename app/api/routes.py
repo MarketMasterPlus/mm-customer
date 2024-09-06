@@ -4,7 +4,7 @@ from flask_restx import Api, Resource, fields, reqparse
 import requests
 import os
 from jwt.exceptions import PyJWTError
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from ..models import db, Customer
 from ..schemas import CustomerSchema
 from ..jwt_helper import generate_jwt
@@ -16,7 +16,7 @@ api = Api(blueprint, title='MM Customer API', version='1.0',
 
 # Swagger models
 customer_model = api.model('Customer', {
-    'full_name': fields.String(required=True, description='Full name of the customer'),
+    'fullname': fields.String(required=True, description='Full name of the customer'),
     'cpf': fields.String(required=True, description='CPF identifier'),
     'email': fields.String(required=True, description='Email address'),
     'password': fields.String(required=True, description='Password'),
@@ -47,7 +47,7 @@ class CustomerRegister(Resource):
         # Try generating the JWT first (if it fails, we stop the process early)
         try:
             # Generate the token early
-            fake_customer = Customer(full_name=data['full_name'], cpf=data['cpf'], email=data['email'], address_id=0)
+            fake_customer = Customer(fullname=data['fullname'], cpf=data['cpf'], email=data['email'], addressid=0)
             fake_customer.password = data['password']  # Set password to test hash generation
             token = generate_jwt(1)  # Test JWT generation with a fake ID
         except PyJWTError as e:
@@ -87,16 +87,16 @@ class CustomerRegister(Resource):
                 return {'message': 'Failed to create address',
                                 'status': address_response.status_code}, address_response.status_code
 
-            address_id = address_json.get('id')
-            if not address_id:
+            addressid = address_json.get('id')
+            if not addressid:
                 return {'message': 'Invalid address response from the service'}, 500
 
             # Create a new customer
             customer = Customer(
-                full_name=data['full_name'],
+                fullname=data['fullname'],
                 cpf=data['cpf'],
                 email=data['email'],
-                address_id=address_id
+                addressid=addressid
             )
             customer.password = data['password']
             db.session.add(customer)
@@ -151,8 +151,11 @@ class CustomerLogin(Resource):
 
         try:
             token = generate_jwt(customer.id)
-            full_name = customer.full_name  # Assuming there's a full_name attribute
-            return {'message': 'Login successful', 'token': token, 'fullName': full_name}, 200
+            fullname = customer.fullname
+            addressid = customer.addressid
+            cpf = customer.cpf
+            email = customer.email
+            return {'message': 'Login successful', 'token': token, 'fullname': fullname, 'cpf': cpf, 'email': email, 'addressid': addressid}, 200
         except PyJWTError as e:
             return {'message': 'Error generating JWT token', 'error': str(e)}, 500
 
@@ -174,7 +177,7 @@ class CustomersList(Resource):
             # Perform case-insensitive partial matching on CPF, full name, or email
             query = query.filter(
                 (Customer.cpf.ilike(f'%{search_query}%')) |
-                (Customer.full_name.ilike(f'%{search_query}%')) |
+                (Customer.fullname.ilike(f'%{search_query}%')) |
                 (Customer.email.ilike(f'%{search_query}%'))
             )
 
@@ -193,9 +196,10 @@ class CustomerDetailByCPF(Resource):
         # Query the customer by CPF instead of ID
         customer = Customer.query.filter_by(cpf=cpf).first_or_404(description=f'Customer with CPF {cpf} not found')
         return jsonify({
-            'full_name': customer.full_name,
+            'fullname': customer.fullname,
             'cpf': customer.cpf,
-            'email': customer.email
+            'email': customer.email,
+            'addressid': customer.addressid
         })
 
     def delete(self, cpf):
@@ -204,18 +208,31 @@ class CustomerDetailByCPF(Resource):
         db.session.commit()
         return jsonify({'message': f'Customer with CPF {cpf} deleted successfully'})
 
+    @api.expect(api.model('CustomerUpdate', {  # Define or modify the existing model to include 'password'
+        'fullname': fields.String(description='Full name of the customer'),
+        'email': fields.String(description='Email address'),
+        'password': fields.String(description='Password', required=False),  # Password is optional for updates
+        'cep': fields.String(description='Postal code (CEP)'),
+        'street': fields.String(description='Street name'),
+        'number': fields.String(description='House number'),
+        'neighborhood': fields.String(description='Neighborhood'),
+        'state': fields.String(description='State'),
+        'city': fields.String(description='City'),
+        'complement': fields.String(description='Complement')
+    }))
     def put(self, cpf):
         customer = Customer.query.filter_by(cpf=cpf).first_or_404(description=f'Customer with CPF {cpf} not found')
         data = request.get_json()
 
-        customer.full_name = data.get('full_name', customer.full_name)
-        customer.cpf = data.get('cpf', customer.cpf)
+        # Update fields if provided in the JSON
+        customer.fullname = data.get('fullname', customer.fullname)
         customer.email = data.get('email', customer.email)
+        if 'password' in data:
+            customer.password_hash = generate_password_hash(data['password'])
 
         try:
             db.session.commit()
+            return {'message': f'Customer with CPF {cpf} updated successfully'}, 200
         except IntegrityError as e:
             db.session.rollback()
-            return jsonify({'message': 'Error updating customer', 'error': str(e)}), 500
-
-        return jsonify({'message': f'Customer with CPF {cpf} updated successfully'})
+            return {'message': 'Error updating customer', 'error': str(e)}, 500

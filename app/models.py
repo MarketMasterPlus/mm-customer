@@ -5,11 +5,11 @@ class Customer(db.Model):
     __tablename__ = 'customers'
 
     id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(100), nullable=False)
+    fullname = db.Column(db.String(100), nullable=False)
     cpf = db.Column(db.String(14), unique=True, nullable=False)  # Updated CPF length to 14
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    address_id = db.Column(db.Integer, nullable=False)  # Referencing the address service
+    addressid = db.Column(db.Integer, nullable=False)  # Referencing the address service
 
     @property
     def password(self):
