@@ -1,5 +1,5 @@
 # mm-customer/app/api/routes.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, abort, request, jsonify
 from flask_restx import Api, Resource, fields, reqparse
 import requests
 import os
@@ -195,6 +195,9 @@ class CustomerDetailByCPF(Resource):
     def get(self, cpf):
         # Query the customer by CPF instead of ID
         customer = Customer.query.filter_by(cpf=cpf).first_or_404(description=f'Customer with CPF {cpf} not found')
+        if not customer:
+            print(f"Customer with CPF {cpf} not found")
+            abort(404, description=f'Customer with CPF {cpf} not found')
         return jsonify({
             'fullname': customer.fullname,
             'cpf': customer.cpf,
