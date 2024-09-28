@@ -6,10 +6,10 @@ class Customer(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Updated CPF length to 14
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    addressid = db.Column(db.Integer, nullable=False)  # Referencing the address service
+    password_hash = db.Column(db.String(128), nullable=False)  # Use password_hash to store the hashed password
+    addressid = db.Column(db.String(128), nullable=False)
 
     @property
     def password(self):
@@ -17,7 +17,7 @@ class Customer(db.Model):
 
     @password.setter
     def password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)  # Set password_hash here
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password_hash, password)  # Check against the hashed password
